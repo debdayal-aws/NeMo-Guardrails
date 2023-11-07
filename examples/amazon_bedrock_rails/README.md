@@ -13,8 +13,21 @@ BEDROCK_ENDPOINT_URL=https://bedrock-runtime.us-east-1.amazonaws.com
 
 ```
 
-
 Rest of the configuration is same as standard NeMo Guardrails configurations and are not repeated here.
+
+## Crate a custom wheel
+
+At the time of writing NeMo Guardails has hardcoded an older version of Langchain lib that prevents accessing Langchain Bedrock integration. Also it packages sentence-transformers and its dependencies making it unsuitable for AWS Lambda. This branch has those necessary customizations to overcome the issues. You need a create custom wheel from this branch. Run below commands to create a custom wheel:
+
+Go to root directory "NeMo-Guardrails"
+
+```
+pip3 install wheel
+python3 setup.py bdist_wheel
+
+```
+The above command will generate dist/nemoguardrails-0.5.0-py3-none-any.whl file. Include the in your requirements.txt file.
+
 
 ## Working with Streaming output
 
@@ -32,7 +45,7 @@ async def pass_to_llm_chain(input):
     return f"PASS_TO_LLM_CHAIN:{input}"
 
 # Create rails 
-rails = LLMRails(config=*nemo_config_dir*, verbose=True)
+rails = LLMRails(config= *nemo_config_dir* , verbose=True)
 rails.register_action(pass_to_llm_chain, "pass_to_llm_chain")
 
 ```
