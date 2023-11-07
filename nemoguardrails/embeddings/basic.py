@@ -12,11 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 from typing import List
-
-#from annoy import AnnoyIndex
-#from torch import cuda
 
 from nemoguardrails.embeddings.index import EmbeddingModel, EmbeddingsIndex, IndexItem
 
@@ -142,6 +139,28 @@ class OpenAIEmbeddingModel(EmbeddingModel):
         res = openai.Embedding.create(input=documents, engine=self.model)
         embeddings = [record["embedding"] for record in res["data"]]
         return embeddings
+    
+class BedrockEmbeddingModel(EmbeddingModel):
+    """Embedding model using Bedrock API."""
+
+    def __init__(self, embedding_model: str):
+        self.model = embedding_model
+        self.embedding_size = len(self.encode(["test"])[0])
+
+    def encode(self, documents: List[str]) -> List[List[float]]:
+        """Encode a list of documents into embeddings."""
+        from langchain.embeddings import BedrockEmbeddings
+
+        # Make embedding request to Bedrock API
+        endpoint_url = os.environ.get("BEDROCK_ENDPOINT_URL", "https://bedrock-runtime.us-east-1.amazonaws.com")
+        region = os.environ.get("BEDROCK_REGION", "us-east-1")
+
+        bedrock_embeddings = BedrockEmbeddings(
+            model_id=self.model, 
+            endpoint_url=endpoint_url, 
+            region_name=region)
+
+        return bedrock_embeddings.embed_documents(documents)
 
 
 def init_embedding_model(embedding_model: str, embedding_engine: str) -> EmbeddingModel:
@@ -150,5 +169,7 @@ def init_embedding_model(embedding_model: str, embedding_engine: str) -> Embeddi
         return SentenceTransformerEmbeddingModel(embedding_model)
     elif embedding_engine == "openai":
         return OpenAIEmbeddingModel(embedding_model)
+    elif embedding_engine in ["amazon_bedrock", "bedrock"]:
+        return BedrockEmbeddingModel(embedding_model)
     else:
         raise ValueError(f"Invalid embedding engine: {embedding_engine}")
